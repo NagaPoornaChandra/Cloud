@@ -1,0 +1,167 @@
+In root ---
+root shows #
+
+
+
+1. scm server backup
+
+cat /etc/cloudera-scm-server/db.properties 
+cd /etc/cloudera-scm-server
+cp db.properties db.properties.backup
+
+2. check java version - we need java 1.8 or up versions - alrady we have 1.8
+yum install java-1.8.0-openjdk-devel
+
+
+
+3. Back Up Cloudera Manager Agent
+
+export CM_BACKUP_DIR="`date +%F`-CM6.3"
+echo $CM_BACKUP_DIR
+mkdir -p CM_BACKUP_DIR
+
+
+4.Back up the Agent directory and the runtime state.
+
+sudo -E tar -cf CM_BACKUP_DIR/cloudera-scm-agent.tar --exclude=*.sock /etc/cloudera-scm-agent /etc/default/cloudera-scm-agent /var/run/cloudera-scm-agent /var/lib/cloudera-scm-agent
+
+5.Back up the existing repository directory.
+sudo -E tar -cf CM_BACKUP_DIR/repository.tar /etc/yum.repos.d
+
+*Back Up the Cloudera Management Service
+*check where is ur services/roles running then take backup that host
+
+6.sudo cp -rp /var/lib/cloudera-service-monitor /var/lib/cloudera-service-monitor-`date +%F`-CM6.3.3
+7.sudo cp -rp /var/lib/cloudera-host-monitor /var/lib/cloudera-host-monitor-`date +%F`-CM6.3.3
+8.sudo cp -rp /var/lib/cloudera-scm-eventserver /var/lib/cloudera-scm-eventserver-`date +%F`-CM6.3.3
+
+9.Stop Cloudera Manager Server & Cloudera Management Service (master1)
+sudo systemctl stop cloudera-scm-server
+
+10.Back Up the Cloudera Manager Databases -- change database here and  take all backup (scm,rman,hive...) (master1)
+ **password is mysql password:
+
+*mysqldump --databases scm --host=localhost --port=3306 -u root -p > CM_BACKUP_DIR/scm`date +%F`-CM6.3.sql  --use this 
+mysqldump --databases hive --host=localhost --port=3306 -u root -p > CM_BACKUP_DIR/hive`date +%F`-CM6.3.sql
+mysqldump --databases rman --host=localhost --port=3306 -u root -p > CM_BACKUP_DIR/rman`date +%F`-CM6.3.sql
+mysqldump --databases akshay_data --host=localhost --port=3306 -u root -p > CM_BACKUP_DIR/akshay_data`date +%F`-CM6.3.sql
+mysqldump --databases hue --host=localhost --port=3306 -u root -p > CM_BACKUP_DIR/hue`date +%F`-CM6.3.sql
+mysqldump --databases mysql --host=localhost --port=3306 -u root -p > CM_BACKUP_DIR/mysql`date +%F`-CM6.3.sql
+
+** this command is called as ad-hoc command why because we are bringing data from outside 
+of that host so its called as ad-hoc
+
+
+11. Start Cloudera Manager Server & Cloudera Management Service
+systemctl start cloudera-scm-server
+
+12.to back up the Activity Monitor database amon, on the local host as the root user, with the password amon_password:
+mysqldump -pCosmos12# actmo > /tmp/actmo.sql
+
+13. all database backup
+
+cd /tmp
+touch all.sql
+mysqldump --all-databases -pCosmos12# > /tmp/all.sql
+
+14. inside the /var/www/html/cloudera-repo
+download reop --wget https://archive.cloudera.com/cm7/7.4.4/repo-as-tarball/cm7.4.4-redhat7.tar.gz
+cm7.4.4
+
+** check baseurl and gpgkey on browser--http://172.30.12.244/cloudera-repo/cm7.4.4/
+
+15. vi /etc/yum.repos.d/cloudera-manager.repo   (for all nodes)  - here we need to mention username and password
+
+
+[cloudera-manager]
+name=Cloudera Manager7.4.4
+baseurl=http://172.30.12.244/cloudera-repo/cm7.4.4/
+gpgkey=http://172.30.12.244/cloudera-repo/cm7.4.4/RPM-GPG-KEY-cloudera
+username=8a862e4f-2009-40ea-b440-3bac2872918d
+password=72a0eacdbe28
+gpgcheck=1
+enabled=1
+autorefresh=0
+type=rpm-md
+
+
+we can copy repo file and pest in all nodes (this one -/etc/yum.repo.d/cloudera-manager.repo)
+scp cloudera-manager.repo root@172.30.12.244:/etc/yum.repos.d/cloudera-manager.repo
+
+
+15.which version is running and all things it will show
+yum deplist cloudera-manager-agent
+
+16.systemctl stop cloudera-scm-agent
+   systemctl stop cloudera-scm-server
+   
+
+17. sudo yum clean all
+    yum makecache
+
+
+19. yum upgrade cloudera-manager-server cloudera-manager-daemons cloudera-manager-agent
+
+20.systemctl start cloudera-scm-server
+   systemctl start cloudera-scm-agent
+
+21. tailf /var/log/cloudera-scm-server/cloudera-scm-server.log 
+when jetty service start then cm will start
+
+22. go to CM and do upgradation in new tab  
+
+23.http://172.30.12.244:7180/cmf/upgrade
+
+give password- admin admin
+
+24.click on upgrade cloudera manager 
+
+26.select custom repo-  http://172.30.12.244/cloudera-reop/cm7.4.4
+
+27.enter login credentials 
+after this it will start to install agents.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
